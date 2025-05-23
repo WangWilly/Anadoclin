@@ -9,8 +9,9 @@ import {
   PDFArray,
   PDFDict,
   PDFString,
+  PDFRef,
 } from "pdf-lib";
-import { LinklyCredentials, PdfInfo, PdfLink } from "../renderer/types";
+import { LinklyCredentials, PdfInfo, PdfLink, PdfLinkDetail, ShortLinkResult } from "../renderer/types";
 import { LinklyClient } from "./clients/linkly";
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -78,7 +79,7 @@ ipcMain.handle("process-pdf", async (event, pdfBuffer): Promise<PdfInfo> => {
     const modificationDate = pdfDoc.getModificationDate()?.toISOString() || "";
 
     // Extract links from the PDF
-    const links = await extractLinksFromPdf(pdfDoc);
+    const links = extractLinksFromPdf(pdfDoc);
 
     return {
       pageCount,
@@ -122,17 +123,73 @@ ipcMain.handle(
       // Create a client instance with the provided credentials
       const linklyClient = new LinklyClient(accountEmail, apiKey, workspaceId);
 
-      // Try creating a test link to validate credentials
-      const testLinkData = {
-        url: "https://example.com",
-        name: "Credentials Validation Test",
-      };
-
       const result = await linklyClient.listLinks();
       return result !== null;
     } catch (error) {
       console.error("Error validating credentials:", error);
       return false;
+    }
+  }
+);
+
+// Add handler for creating short links
+ipcMain.handle(
+  "create-short-links",
+  async (
+    event,
+    { links, credentials }: { links: PdfLinkDetail[]; credentials: LinklyCredentials }
+  ): Promise<ShortLinkResult[]> => {
+    try {
+      const { apiKey, accountEmail, workspaceId } = credentials;
+
+      // Create Linkly client
+      const linklyClient = new LinklyClient(accountEmail, apiKey, workspaceId);
+
+      // Process links in parallel with a small delay to avoid rate limiting
+      const results: ShortLinkResult[] = [];
+
+      for (const urlDetail of links) {
+        try {
+          // Create link data
+          const linkData = {
+            url: urlDetail.url,
+            name: `PDF Link: ${urlDetail.url.substring(0, 30)}${
+              urlDetail.url.length > 30 ? "..." : ""
+            }`,
+          };
+
+          // Create short link
+          const response = await linklyClient.createLink(linkData);
+
+          if (response && response.full_url) {
+            results.push({
+              urlDetail: {...urlDetail, shortUrl: response.full_url},
+              success: true,
+            });
+          } else {
+            results.push({
+              urlDetail: urlDetail,
+              success: false,
+              error: "Failed to create short link",
+            });
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Error creating short link for ${urlDetail.url}:`, error);
+          results.push({
+            urlDetail: urlDetail,
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+
+      return results;
+    } catch (error) {
+      console.error("Error processing links:", error);
+      throw error;
     }
   }
 );
@@ -153,7 +210,7 @@ function extractLinksFromPdf(pdfDoc: PDFDocument): PdfLink[] {
         pageLinks.forEach((link) => {
           links.push({
             page: i + 1,
-            url: link,
+            urlDetail: link,
           });
         });
       } catch (pageError) {
@@ -170,7 +227,7 @@ function extractLinksFromPdf(pdfDoc: PDFDocument): PdfLink[] {
 function getLinksFromPageLeaf(
   pdfDoc: PDFDocument,
   pageLeaf: PDFPageLeaf
-): string[] {
+): PdfLinkDetail[] {
   if (!(pageLeaf instanceof PDFPageLeaf)) {
     throw new Error("Invalid page leaf.");
   }
@@ -185,14 +242,26 @@ function getLinksFromPageLeaf(
   }
 
   const annotsArray = pageAnnots as PDFArray;
-  const pageLinks: string[] = [];
+  const pageLinks: PdfLinkDetail[] = [];
 
   for (let idx = 0; idx < annotsArray.size(); idx++) {
     const annotRef = annotsArray.get(idx);
+    if (!(annotRef instanceof PDFRef)) {
+      continue;
+    }
+
     const annot = pdfDoc.context.lookup(annotRef);
     if (!(annot instanceof PDFDict)) {
       continue;
     }
+
+    // const ref = PDFRef.of(annotRef.objectNumber, annotRef.generationNumber);
+    // const pdfObject = pdfDoc.context.lookup(ref);
+    // // check if they are the same
+    // if (pdfObject !== annot) {
+    //   console.warn("Annotation object mismatch:", pdfObject, annot);
+    //   continue;
+    // }
 
     // Check if annotation is a link
     const subtype = annot.get(PDFName.of("Subtype"));
@@ -223,7 +292,11 @@ function getLinksFromPageLeaf(
     if (uriValue.match(/javascript:/)) {
       continue;
     }
-    pageLinks.push(uriValue);
+    pageLinks.push({
+      objectNumber: annotRef.objectNumber,
+      generationNumber: annotRef.generationNumber,
+      url: uriValue,
+    });
   }
 
   return pageLinks;

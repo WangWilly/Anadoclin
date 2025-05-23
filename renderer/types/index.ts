@@ -1,6 +1,15 @@
+export interface PdfLinkDetail {
+  objectNumber: number;
+  generationNumber: number;
+  url: string;
+  shortUrl?: string;
+}
+
 export interface PdfLink {
   page: number;
-  url: string;
+  urlDetail: PdfLinkDetail;
+  status?: 'pending' | 'success' | 'failed';
+  error?: string;
 }
 
 export interface PdfInfo {
@@ -20,4 +29,10 @@ export interface LinklyCredentials {
   apiKey: string;
   accountEmail: string;
   workspaceId: number;
+}
+
+export interface ShortLinkResult {
+  urlDetail: PdfLinkDetail;
+  success: boolean;
+  error?: string;
 }

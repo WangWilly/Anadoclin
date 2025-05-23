@@ -16,12 +16,31 @@ body {
 
 @layer base {
   body {
-    @apply bg-gray-900 text-white;
+    /* Change from dark to light background */
+    @apply bg-gray-100 text-gray-900;
   }
 }
 
 @layer components {
   .btn-blue {
-    @apply text-white font-bold px-4 py-2 rounded bg-blue-600 hover:bg-blue-500;
+    /* Brighten button and improve contrast */
+    @apply text-white font-bold px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all;
+  }
+  
+  /* Add more button styles with appropriate contrast */
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm px-4 py-2 transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-md shadow-sm px-4 py-2 transition-colors;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium rounded-md shadow-sm px-4 py-2 transition-colors;
+  }
+  
+  .btn-success {
+    @apply bg-green-600 hover:bg-green-700 text-white font-medium rounded-md shadow-sm px-4 py-2 transition-colors;
   }
 }
