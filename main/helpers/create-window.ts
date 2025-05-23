@@ -6,6 +6,8 @@ import {
 } from "electron";
 import Store from "electron-store";
 
+////////////////////////////////////////////////////////////////////////////////
+
 export const createWindow = (
   windowName: string,
   options: BrowserWindowConstructorOptions
