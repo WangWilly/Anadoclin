@@ -5,7 +5,7 @@ import {
 } from "../../utils/constants";
 import { safe } from "../../utils/exceptions";
 import { HttpClient } from "../../utils/httpClient";
-import { CreateLinkRequestDto, CreateLinkResponseDtoSchema } from "./dtos";
+import { CreateLinkRequestDto, CreateLinkResponseDtoSchema, ListLinksResponseDtoSchema } from "./dtos";
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -18,6 +18,7 @@ export class LinklyClient {
 
   // API endpoints
   private readonly createLinkPath = "/v1/link";
+  private readonly listLinksPath = "/v1/workspace/{workspaceId}/list_links";
 
   /**
    * Creates a new LinklyClient instance
@@ -25,7 +26,9 @@ export class LinklyClient {
    * @param baseUrl The base URL for the Linkly API (defaults to https://linkly.com)
    */
   constructor(
+    private readonly accountEmail: string,
     private readonly apiKey: string,
+    private readonly workspaceId: number,
     baseUrl: string = "https://app.linklyhq.com/api"
   ) {
     this.httpClient = new HttpClient({
@@ -45,7 +48,9 @@ export class LinklyClient {
    * @returns The created link data or null if an error occurred
    */
   async createLink(requestData: CreateLinkRequestDto) {
+    requestData.email = this.accountEmail;
     requestData.api_key = this.apiKey;
+    requestData.workspace_id = this.workspaceId;
     const resultRes = await safe(
       this.httpClient.post(this.createLinkPath, requestData, undefined, true)
     );
@@ -59,6 +64,37 @@ export class LinklyClient {
     if (!parseRes.success) {
       console.error(
         `[createLink] Failed to parse response: ${parseRes.error.toString()}`
+      );
+      return null;
+    }
+
+    return parseRes.data;
+  }
+
+  /**
+   * List all links in the workspace
+   * @returns An array of links or null if an error occurred
+   */
+  async listLinks() {
+    const tarUrl = this.listLinksPath.replace(
+      "{workspaceId}",
+      this.workspaceId.toString()
+    );
+    const resultRes = await safe(
+      this.httpClient.get(tarUrl, {
+        api_key: this.apiKey,
+      }, true)
+    );
+
+    if (resultRes.success === false) {
+      console.error(`[listLinks] Failed to get response: ${resultRes.error}`);
+      return null;
+    }
+
+    const parseRes = ListLinksResponseDtoSchema.safeParse(resultRes.data);
+    if (!parseRes.success) {
+      console.error(
+        `[listLinks] Failed to parse response: ${parseRes.error.toString()}`
       );
       return null;
     }

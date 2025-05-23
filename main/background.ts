@@ -10,7 +10,8 @@ import {
   PDFDict,
   PDFString,
 } from "pdf-lib";
-import { PdfInfo, PdfLink } from "../renderer/types";
+import { LinklyCredentials, PdfInfo, PdfLink } from "../renderer/types";
+import { LinklyClient } from "./clients/linkly";
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -96,6 +97,45 @@ ipcMain.handle("process-pdf", async (event, pdfBuffer): Promise<PdfInfo> => {
     throw error;
   }
 });
+
+// Updated handler to validate Linkly credentials
+ipcMain.handle(
+  "validate-linkly-credentials",
+  async (
+    event,
+    credentials: LinklyCredentials
+  ) => {
+    try {
+      const { apiKey, accountEmail, workspaceId } = credentials;
+
+      if (
+        !apiKey ||
+        typeof apiKey !== "string" ||
+        !accountEmail ||
+        typeof accountEmail !== "string" ||
+        !workspaceId ||
+        typeof workspaceId !== "number"
+      ) {
+        return false;
+      }
+
+      // Create a client instance with the provided credentials
+      const linklyClient = new LinklyClient(accountEmail, apiKey, workspaceId);
+
+      // Try creating a test link to validate credentials
+      const testLinkData = {
+        url: "https://example.com",
+        name: "Credentials Validation Test",
+      };
+
+      const result = await linklyClient.listLinks();
+      return result !== null;
+    } catch (error) {
+      console.error("Error validating credentials:", error);
+      return false;
+    }
+  }
+);
 
 ////////////////////////////////////////////////////////////////////////////////
 

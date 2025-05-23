@@ -15,3 +15,9 @@ export interface PdfInfo {
   modificationDate: string;
   links: PdfLink[];
 }
+
+export interface LinklyCredentials {
+  apiKey: string;
+  accountEmail: string;
+  workspaceId: number;
+}

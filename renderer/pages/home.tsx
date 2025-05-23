@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import { PdfInfo } from '../types'
 
 export default function HomePage() {
@@ -7,6 +8,18 @@ export default function HomePage() {
   const [pdfInfo, setPdfInfo] = useState<PdfInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  
+  useEffect(() => {
+    // Check if all required credentials exist
+    const apiKey = localStorage.getItem('linkly_api_key');
+    const accountEmail = localStorage.getItem('linkly_account_email');
+    const workspaceId = localStorage.getItem('linkly_workspace_id');
+    
+    if (!apiKey || !accountEmail || !workspaceId) {
+      router.push('/');
+    }
+  }, [router])
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -62,13 +75,28 @@ export default function HomePage() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('linkly_api_key');
+    localStorage.removeItem('linkly_account_email');
+    localStorage.removeItem('linkly_workspace_id');
+    router.push('/');
+  }
+
   return (
     <React.Fragment>
       <Head>
         <title>Upload PDF file</title>
       </Head>
       <div className="container mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">PDF Processor</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">PDF Processor</h1>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+          >
+            Change Credentials
+          </button>
+        </div>
         
         <div 
           className="border-2 border-dashed p-10 rounded-lg text-center mb-6 cursor-pointer hover:bg-gray-50"
