@@ -86,7 +86,7 @@ export default function ApiCredentialsPage() {
         <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg space-y-8">
           <div>
             <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
-              Welcome to Doclin
+              Welcome to Anadoclin
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Please enter your Linkly credentials to continue

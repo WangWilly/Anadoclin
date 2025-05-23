@@ -1,10 +1,10 @@
-# Doclin
+# Anadoclin
 
-<!-- ![Doclin Logo](assets/doclin-logo.png) -->
+<!-- ![Anadoclin Logo](assets/anadoclin-logo.png) -->
 
 ## Introduction
 
-Doclin is a desktop application that transforms PDF link management by extracting URLs from PDF documents and converting them to shortened links through the Linkly API. This tool is perfect for document publishers, marketers, and anyone who needs to track link engagement in their PDF documents.
+Anadoclin is a desktop application that transforms PDF link management by extracting URLs from PDF documents and converting them to shortened links through the Linkly API. This tool is perfect for document publishers, marketers, and anyone who needs to track link engagement in their PDF documents.
 
 ## Features
 
@@ -18,12 +18,6 @@ Doclin is a desktop application that transforms PDF link management by extractin
 ## Installation
 
 ```bash
-# Clone the repository
-$ git clone https://github.com/your-username/doclin.git
-
-# Navigate to the project directory
-$ cd doclin
-
 # Install dependencies
 $ yarn install (or `npm install` or `pnpm install`)
 ```
@@ -61,7 +55,7 @@ $ yarn package-linux (or `npm run package-linux`)
 
 1. **Authentication**: Log in with your Linkly API credentials
 2. **Upload**: Drag and drop or select a PDF file
-3. **Analysis**: Doclin extracts all links from the document
+3. **Analysis**: Anadoclin extracts all links from the document
 4. **Shortening**: Apply Linkly to convert links to trackable short URLs
 5. **Generation**: Create a new PDF with all original links replaced by shortened URLs
 
@@ -73,7 +67,7 @@ $ yarn package-linux (or `npm run package-linux`)
 
 ## Technical Details
 
-Doclin is built using:
+Anadoclin is built using:
 - **Electron**: For cross-platform desktop application capabilities
 - **React/Next.js**: For the user interface
 - **pdf-lib**: For PDF manipulation
