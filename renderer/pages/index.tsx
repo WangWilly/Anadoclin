@@ -3,6 +3,9 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import ErrorMessage from "../components/ErrorMessage";
 import CredentialsForm from "../components/CredentialsForm";
+import HintTooltip from "../components/HintTooltip";
+
+////////////////////////////////////////////////////////////////////////////////
 
 export default function ApiCredentialsPage() {
   const [apiKey, setApiKey] = useState("");
@@ -18,15 +21,10 @@ export default function ApiCredentialsPage() {
     const savedEmail = localStorage.getItem("linkly_account_email");
     const savedWorkspaceId = localStorage.getItem("linkly_workspace_id");
 
-    if (savedApiKey && savedEmail && savedWorkspaceId) {
-      router.push("/home");
-    } else {
-      // If we have partial credentials, fill the form
-      if (savedApiKey) setApiKey(savedApiKey);
-      if (savedEmail) setAccountEmail(savedEmail);
-      if (savedWorkspaceId) setWorkspaceId(savedWorkspaceId);
-    }
-  }, [router]);
+    if (savedApiKey) setApiKey(savedApiKey);
+    if (savedEmail) setAccountEmail(savedEmail);
+    if (savedWorkspaceId) setWorkspaceId(savedWorkspaceId);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,12 +85,46 @@ export default function ApiCredentialsPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg space-y-8">
           <div>
-            <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
-              Welcome to Anadoclin
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              Please enter your Linkly credentials to continue
-            </p>
+            <div className="flex justify-center items-center">
+              <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
+                Welcome to Anadoclin
+              </h2>
+              <HintTooltip
+                content={
+                  <div>
+                    <p>
+                      Anadoclin helps you convert long URLs in your PDF
+                      documents into short links using Linkly service.
+                    </p>
+                    <p className="mt-1">
+                      First, you need to enter your Linkly credentials to
+                      proceed.
+                    </p>
+                  </div>
+                }
+                position="right"
+                className="ml-2"
+              />
+            </div>
+            <div className="mt-2 text-center text-sm text-gray-600 flex items-center justify-center">
+              <p>Please enter your Linkly credentials to continue</p>
+              <HintTooltip
+                content={
+                  <div>
+                    <p>
+                      You can find your API key and workspace ID in your Linkly
+                      account settings.
+                    </p>
+                    <p className="mt-1">
+                      After submitting valid credentials, you'll be able to
+                      upload PDFs and create short links.
+                    </p>
+                  </div>
+                }
+                position="bottom"
+                className="ml-1"
+              />
+            </div>
           </div>
 
           <ErrorMessage message={error} />
