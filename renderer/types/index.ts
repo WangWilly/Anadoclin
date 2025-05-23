@@ -8,7 +8,7 @@ export interface PdfLinkDetail {
 export interface PdfLink {
   page: number;
   urlDetail: PdfLinkDetail;
-  status?: 'pending' | 'success' | 'failed';
+  status?: "pending" | "success" | "failed";
   error?: string;
 }
 
