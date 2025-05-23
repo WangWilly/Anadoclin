@@ -4,6 +4,8 @@ import PageTransition from "../components/PageTransition";
 
 import "../styles/globals.css";
 
+////////////////////////////////////////////////////////////////////////////////
+
 function MyApp({ Component, pageProps, router }: AppProps) {
   return (
     <PageTransition>

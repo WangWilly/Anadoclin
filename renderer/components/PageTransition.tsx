@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
+////////////////////////////////////////////////////////////////////////////////
+
 interface PageTransitionProps {
   children: React.ReactNode;
 }
