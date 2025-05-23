@@ -62,8 +62,10 @@ export default function ApiCredentialsPage() {
         localStorage.setItem("linkly_account_email", accountEmail);
         localStorage.setItem("linkly_workspace_id", workspaceId);
 
-        // Redirect to home/upload page
-        router.push("/home");
+        // Add a slight delay before navigation to allow animation to begin
+        setTimeout(() => {
+          router.push("/home");
+        }, 50);
       } else {
         setError("Invalid credentials. Please check and try again.");
       }

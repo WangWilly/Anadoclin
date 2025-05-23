@@ -44,3 +44,30 @@ body {
     @apply bg-green-600 hover:bg-green-700 text-white font-medium rounded-md shadow-sm px-4 py-2 transition-colors;
   }
 }
+
+/* Page Transition Animations */
+.transition-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  opacity: 1;
+  transition: all 400ms ease-in-out;
+}
+
+.transition-wrapper.fadeIn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.transition-wrapper.fadeOut {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+html, 
+body, 
+#__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
