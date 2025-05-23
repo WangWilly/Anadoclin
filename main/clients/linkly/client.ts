@@ -67,6 +67,17 @@ export class LinklyClient {
       );
       return null;
     }
+    if (!parseRes.data.full_url) {
+      console.error(
+        `[createLink] Failed to parse response: full_url is missing`
+      );
+      return null;
+    }
+    // Replace the domain in the full_url
+    parseRes.data.full_url = parseRes.data.full_url.replace(
+      "https://2ly.link/",
+      "https://l.linklyhq.com/l/",
+    );
 
     return parseRes.data;
   }

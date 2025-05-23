@@ -10,6 +10,7 @@ import {
   PDFDict,
   PDFString,
   PDFRef,
+  PDFNumber,
 } from "pdf-lib";
 import { LinklyCredentials, PdfInfo, PdfLink, PdfLinkDetail, ShortLinkResult } from "../renderer/types";
 import { LinklyClient } from "./clients/linkly";
@@ -137,7 +138,11 @@ ipcMain.handle(
   "create-short-links",
   async (
     event,
-    { links, credentials }: { links: PdfLinkDetail[]; credentials: LinklyCredentials }
+    { links, credentials, prefix }: { 
+      links: PdfLinkDetail[]; 
+      credentials: LinklyCredentials;
+      prefix: string;
+    }
   ): Promise<ShortLinkResult[]> => {
     try {
       const { apiKey, accountEmail, workspaceId } = credentials;
@@ -150,10 +155,10 @@ ipcMain.handle(
 
       for (const urlDetail of links) {
         try {
-          // Create link data
+          // Create link data with the custom prefix
           const linkData = {
             url: urlDetail.url,
-            name: `PDF Link: ${urlDetail.url.substring(0, 30)}${
+            name: `${prefix || 'PDF Link:'} ${urlDetail.url.substring(0, 30)}${
               urlDetail.url.length > 30 ? "..." : ""
             }`,
           };
@@ -189,6 +194,90 @@ ipcMain.handle(
       return results;
     } catch (error) {
       console.error("Error processing links:", error);
+      throw error;
+    }
+  }
+);
+
+// Add handler for generating modified PDF
+ipcMain.handle(
+  "generate-modified-pdf",
+  async (
+    event,
+    { originalPdf, links }: { originalPdf: ArrayBuffer; links: PdfLink[] }
+  ): Promise<Uint8Array> => {
+    try {
+      // Load the PDF
+      const pdfDoc = await PDFDocument.load(originalPdf);
+
+      // Track if we've updated any links
+      let updatedLinksCount = 0;
+
+      // Process each page
+      for (let i = 0; i < pdfDoc.getPageCount(); i++) {
+        const page = pdfDoc.getPage(i);
+        const pageLeaf = page.node;
+        
+        // Get annotations
+        const pageAnnots = pageLeaf.get(PDFName.of("Annots"));
+        if (!pageAnnots || !(pageAnnots instanceof PDFArray)) {
+          continue;
+        }
+        
+        const annotsArray = pageAnnots as PDFArray;
+        
+        // Loop through annotations
+        for (let idx = 0; idx < annotsArray.size(); idx++) {
+          const annotRef = annotsArray.get(idx);
+          if (!(annotRef instanceof PDFRef)) {
+            continue;
+          }
+          
+          // Find matching link in our processed links
+          const matchingLink = links.find(
+            link => 
+              link.urlDetail.objectNumber === annotRef.objectNumber && 
+              link.urlDetail.generationNumber === annotRef.generationNumber && 
+              link.urlDetail.shortUrl // Only update links that have been shortened
+          );
+          
+          if (matchingLink) {
+            // Get the annotation object
+            const annot = pdfDoc.context.lookup(annotRef);
+            if (!(annot instanceof PDFDict)) {
+              continue;
+            }
+            
+            // Get the action dictionary
+            const action = annot.get(PDFName.of("A"));
+            if (!action || !(action instanceof PDFDict)) {
+              continue;
+            }
+            
+            // Replace the URI with the shortened URL
+            action.set(
+              PDFName.of("URI"), 
+              PDFString.of(matchingLink.urlDetail.shortUrl!)
+            );
+            
+            updatedLinksCount++;
+          }
+        }
+      }
+      
+      console.log(`Updated ${updatedLinksCount} links in the PDF`);
+      
+      // If no links were updated, throw an error
+      if (updatedLinksCount === 0) {
+        throw new Error("No links were updated in the PDF");
+      }
+      
+      // Save the PDF
+      const modifiedPdfBytes = await pdfDoc.save();
+      
+      return modifiedPdfBytes;
+    } catch (error) {
+      console.error("Error generating modified PDF:", error);
       throw error;
     }
   }
@@ -300,4 +389,31 @@ function getLinksFromPageLeaf(
   }
 
   return pageLinks;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+function sortAnnotsByPosition(annotsArray: PDFDict[]) {
+  return annotsArray.sort((a, b) => {
+    const rectA = a.get(PDFName.of('Rect')) as PDFArray;
+    const rectB = b.get(PDFName.of('Rect')) as PDFArray;
+
+    if (!rectA || !rectB) return 0;
+
+    // rect = [x1, y1, x2, y2]
+    const [x1A, y1A, x2A, y2A] = rectA.asArray().map(n => (n as PDFNumber).asNumber());
+    const [x1B, y1B, x2B, y2B] = rectB.asArray().map(n => (n as PDFNumber).asNumber());
+
+    // Calculate top (max y) and left (min x) for each annotation
+    const topA = Math.max(y1A, y2A);
+    const topB = Math.max(y1B, y2B);
+    const leftA = Math.min(x1A, x2A);
+    const leftB = Math.min(x1B, x2B);
+
+    // Sort by top descending (higher Y first)
+    if (topA !== topB) return topB - topA;
+
+    // If top is same, sort by left ascending (lower X first)
+    return leftA - leftB;
+  });
 }

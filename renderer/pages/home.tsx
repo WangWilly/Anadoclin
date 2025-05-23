@@ -1,14 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { PdfInfo, PdfLink, ShortLinkResult } from '../types'
+import { PdfInfo, PdfLink, PdfLinkDetail, ShortLinkResult } from '../types'
 
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null)
   const [pdfInfo, setPdfInfo] = useState<PdfInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isShorteningLinks, setIsShorteningLinks] = useState(false)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null)
+  const [linkPrefix, setLinkPrefix] = useState('');
   const router = useRouter()
   
   useEffect(() => {
@@ -104,7 +106,8 @@ export default function HomePage() {
       // Create short links using the main process
       const results: ShortLinkResult[] = await window.ipc.invoke('create-short-links', {
         links,
-        credentials: { apiKey, accountEmail, workspaceId }
+        credentials: { apiKey, accountEmail, workspaceId },
+        prefix: linkPrefix.trim() // Pass the prefix to the main process
       });
 
       // Update PDF info with shortened links
@@ -126,6 +129,52 @@ export default function HomePage() {
       setError('Error shortening links: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsShorteningLinks(false);
+    }
+  };
+
+  const handleGenerateModifiedPdf = async () => {
+    if (!pdfInfo || !file || !pdfInfo.links) {
+      setError('No PDF file or links available');
+      return;
+    }
+
+    // Check if we have any shortened links
+    const hasShortLinks = pdfInfo.links.some(link => link.urlDetail.shortUrl);
+    if (!hasShortLinks) {
+      setError('Please shorten at least one link before generating a new PDF');
+      return;
+    }
+
+    try {
+      setIsGeneratingPdf(true);
+      setError(null);
+
+      // Get original file as array buffer
+      const arrayBuffer = await file.arrayBuffer();
+      
+      // Send to main process to generate modified PDF
+      const modifiedPdfBuffer = await window.ipc.invoke('generate-modified-pdf', {
+        originalPdf: arrayBuffer,
+        links: pdfInfo.links,
+      });
+      
+      // Create a blob from the returned array buffer
+      const blob = new Blob([modifiedPdfBuffer], { type: 'application/pdf' });
+      
+      // Create a download link and trigger click
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${file.name.replace('.pdf', '')}_with_short_links.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+    } catch (err) {
+      setError('Error generating PDF: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -191,6 +240,12 @@ export default function HomePage() {
             </div>
           )}
 
+          {isGeneratingPdf && (
+            <div className="text-center py-4">
+              <p>Generating PDF with shortened links...</p>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
               <p>{error}</p>
@@ -210,13 +265,33 @@ export default function HomePage() {
                   <div className="mt-4">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="text-lg font-medium text-gray-900">Links in Document</h3>
-                      <button
-                        onClick={handleShortenLinks}
-                        disabled={isShorteningLinks}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:text-gray-200 text-sm shadow-sm"
-                      >
-                        {isShorteningLinks ? 'Processing...' : 'Apply Linkly to All Links'}
-                      </button>
+                      <div className="flex space-x-2">
+                        <div className="flex items-center mr-2">
+                          <input
+                            id="link-prefix"
+                            type="text"
+                            className="border border-gray-300 rounded-md p-1 text-sm"
+                            value={linkPrefix}
+                            onChange={(e) => setLinkPrefix(e.target.value)}
+                            disabled={isShorteningLinks}
+                            placeholder="Label prefix (optional)"
+                          />
+                        </div>
+                        <button
+                          onClick={handleShortenLinks}
+                          disabled={isShorteningLinks || isGeneratingPdf}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:text-gray-200 text-sm shadow-sm"
+                        >
+                          {isShorteningLinks ? 'Processing...' : 'Apply Linkly to All Links'}
+                        </button>
+                        <button
+                          onClick={handleGenerateModifiedPdf}
+                          disabled={isGeneratingPdf || isShorteningLinks || !pdfInfo.links.some(link => link.urlDetail.shortUrl)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:text-gray-200 text-sm shadow-sm"
+                        >
+                          {isGeneratingPdf ? 'Generating...' : 'Generate PDF with Short Links'}
+                        </button>
+                      </div>
                     </div>
                     <div className="max-h-80 overflow-y-auto border rounded-md p-3 bg-gray-50">
                       <table className="min-w-full">
