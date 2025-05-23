@@ -1,6 +1,6 @@
 # Anadoclin
 
-<!-- ![Anadoclin Logo](assets/anadoclin-logo.png) -->
+![Anadoclin Logo](docs/anadoclin-logo.png)
 
 ## Introduction
 
