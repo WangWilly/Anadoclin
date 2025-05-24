@@ -2,8 +2,11 @@
   "private": true,
   "name": "anadoclin",
   "description": "",
-  "version": "0.1.2",
-  "author": "",
+  "version": "0.1.9",
+  "author": {
+    "name": "WangWilly",
+    "email": "angles.anodes.0v@icloud.com"
+  },
   "main": "app/background.js",
   "scripts": {
     "dev": "nextron",
@@ -43,6 +46,13 @@
       "buildResources": "resources",
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "WangWilly",
+        "repo": "Anadoclin"
+      }
+    ],
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
