@@ -1,4 +1,5 @@
 name: Build/release
+
 on:
   push:
     tags: 
@@ -6,7 +7,6 @@ on:
 
 jobs:
   release:
-    if: github.ref_name == 'master'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
